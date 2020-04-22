@@ -23,7 +23,6 @@
   "homepage": "https://github.com/RudolfBenadie/apollo-datasource-firebase#readme",
   "dependencies": {
     "apollo-datasource": "^0.7.0",
-    "firebase": "^7.14.1",
-    "firebase-admin": "^8.10.0"
+    "firebase": "^7.14.1"
   }
 }
