@@ -1,6 +1,6 @@
 {
   "name": "apollo-datasource-firebase",
-  "version": "0.0.2",
+  "version": "0.0.5",
   "description": "Firebase datasource for Apollo GraphQL server",
   "main": "index.js",
   "scripts": {
@@ -23,6 +23,7 @@
   "homepage": "https://github.com/RudolfBenadie/apollo-datasource-firebase#readme",
   "dependencies": {
     "apollo-datasource": "^0.7.0",
-    "firebase": "^7.14.1"
+    "firebase": "^7.14.1",
+    "firebase-admin": "^8.11.0"
   }
 }
