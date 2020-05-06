@@ -199,9 +199,11 @@ class FirebaseDataSource extends DataSource {
       admin.auth().setCustomUserClaims(user.uid, this.defaultCustomClaims);
       var activeUser = {
         ...user,
+        token,
         customClaims: this.defaultCustomClaims
       };
-      return { ...activeUser, token };
+      this.activeUser = activeUser;
+      return activeUser;
     } catch (e) {
       console.log('Failed to sign up user', args, e);
       throw e;
@@ -246,9 +248,11 @@ class FirebaseDataSource extends DataSource {
       const token = await admin.auth().createCustomToken(signIn.user.uid, claims);
       var currentUser = {
         ...user,
+        token,
         customClaims: claims
       };
-      return { ...currentUser, token };
+      this.activeUser = currentUser;
+      return currentUser;
     } catch (e) {
       console.log('Sign in error', e)
       throw e
