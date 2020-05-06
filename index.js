@@ -199,9 +199,11 @@ class FirebaseDataSource extends DataSource {
       admin.auth().setCustomUserClaims(user.uid, this.defaultCustomClaims);
       var activeUser = {
         ...user,
+        token,
         customClaims: this.defaultCustomClaims
       };
-      return { ...activeUser, token };
+      this.activeUser = activeUser;
+      return activeUser;
     } catch (e) {
       console.log('Failed to sign up user', args, e);
       throw e;
@@ -246,9 +248,11 @@ class FirebaseDataSource extends DataSource {
       const token = await admin.auth().createCustomToken(signIn.user.uid, claims);
       var currentUser = {
         ...user,
+        token,
         customClaims: claims
       };
-      return { ...currentUser, token };
+      this.activeUser = currentUser;
+      return currentUser;
     } catch (e) {
       console.log('Sign in error', e)
       throw e
@@ -280,10 +284,7 @@ class FirebaseDataSource extends DataSource {
      * @return javascript object of the document that were added.
      */
   async addDocument(args) {
-    const { collection, data, token } = args;
-    if (!this.activeUser && token){
-      this.activeUser = await this.retrieveUserFromToken(token);
-    };
+    const { collection, data } = args;
     if (this.activeUser) {
       const collectionReference = this.db.collection(collection);
       var documentReference;
@@ -327,10 +328,7 @@ class FirebaseDataSource extends DataSource {
    * @return true.
    */
   async updateDocument(args) {
-    const { collection, data, token } = args;
-    if (!this.activeUser && token){
-      this.activeUser = await this.retrieveUserFromToken(token);
-    };
+    const { collection, data } = args;
     if (this.activeUser) {
       const documentReference = this.db.collection(collection).doc(documentId);
       if (data.id) delete data.id;
@@ -365,6 +363,43 @@ class FirebaseDataSource extends DataSource {
       const documentReference = this.db.collection(collection).doc(documentId);
       await documentReference.delete();
       return true;
+    } else {
+      throw new Error('Not Authorised');
+    };
+  };
+
+  /** Retrieve a document from a firestore collection.
+   *
+   * @webonly
+   *
+   * @example
+   * ```javascript
+   * 
+   *  const args = {
+   *    collection: "users",
+   *    id: "Van4Tij98lKfbOKP0"
+   *  }
+   *  const users = await getDocumentById(args);
+   * 
+   * ```
+   *
+   * @param args An object of arguments.
+   * @return Object representation of a document.
+   */
+  async getDocumentById(args) {
+    const { collection, id } = args;
+    if (this.activeUser) {
+      try {
+        const queryRef = this.db.collection(collection).doc(id);
+        var documentSnapshot = await queryRef.get();
+        var document = {
+            id: documentSnapshot.id,
+            ...documentSnapshot.data()
+          }
+        return document;
+      } catch (err) {
+        throw new Error('Function getDocumentById failed.', err);
+      }
     } else {
       throw new Error('Not Authorised');
     };
