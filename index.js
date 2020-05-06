@@ -370,6 +370,46 @@ class FirebaseDataSource extends DataSource {
     };
   };
 
+  /** Retrieve a document from a firestore collection.
+   *
+   * @webonly
+   *
+   * @example
+   * ```javascript
+   * 
+   *  const args = {
+   *    collection: "users",
+   *    id: "Van4Tij98lKfbOKP0"
+   *  }
+   *  const users = await getDocumentById(args);
+   * 
+   * ```
+   *
+   * @param args An object of arguments.
+   * @return Object representation of a document.
+   */
+  async getDocumentById(args) {
+    const { collection, id, token } = args;
+    if (!this.activeUser && token){
+      this.activeUser = await this.retrieveUserFromToken(token);
+    };
+    if (this.activeUser) {
+      try {
+        const queryRef = this.db.collection(collection).doc(id);
+        var documentSnapshot = await queryRef.get();
+        var document = {
+            id: documentSnapshot.id,
+            ...documentSnapshot.data()
+          }
+        return document;
+      } catch (err) {
+        throw new Error('Function getDocumentById failed.', err);
+      }
+    } else {
+      throw new Error('Not Authorised');
+    };
+  };
+
   /** Retrieve data from a firestore collection.
    *
    * @webonly
