@@ -284,10 +284,7 @@ class FirebaseDataSource extends DataSource {
      * @return javascript object of the document that were added.
      */
   async addDocument(args) {
-    const { collection, data, token } = args;
-    if (!this.activeUser && token){
-      this.activeUser = await this.retrieveUserFromToken(token);
-    };
+    const { collection, data } = args;
     if (this.activeUser) {
       const collectionReference = this.db.collection(collection);
       var documentReference;
@@ -331,10 +328,7 @@ class FirebaseDataSource extends DataSource {
    * @return true.
    */
   async updateDocument(args) {
-    const { collection, data, token } = args;
-    if (!this.activeUser && token){
-      this.activeUser = await this.retrieveUserFromToken(token);
-    };
+    const { collection, data } = args;
     if (this.activeUser) {
       const documentReference = this.db.collection(collection).doc(documentId);
       if (data.id) delete data.id;
@@ -393,10 +387,7 @@ class FirebaseDataSource extends DataSource {
    * @return Object representation of a document.
    */
   async getDocumentById(args) {
-    const { collection, id, token } = args;
-    if (!this.activeUser && token){
-      this.activeUser = await this.retrieveUserFromToken(token);
-    };
+    const { collection, id } = args;
     if (this.activeUser) {
       try {
         const queryRef = this.db.collection(collection).doc(id);
@@ -432,10 +423,7 @@ class FirebaseDataSource extends DataSource {
    * @return Array of documents.
    */
   async getDocuments(args) {
-    const { collection, token } = args;
-    if (!this.activeUser && token){
-      this.activeUser = await this.retrieveUserFromToken(token);
-    };
+    const { collection } = args;
     if (this.activeUser) {
       try {
         const queryRef = this.db.collection(collection);
