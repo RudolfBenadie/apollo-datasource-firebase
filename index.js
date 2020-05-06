@@ -87,6 +87,35 @@ class FirebaseDataSource extends DataSource {
     const token = req.headers['x-token'];
     if (token) {
       try {
+        var activeUser = await this.retrieveUserFromToken(token);
+        return activeUser;
+
+      } catch (e) {
+        console.log('Could not validate user from token.', e)
+        throw e
+      };
+    } else {
+      return null;
+    };
+  };
+
+  /** Get the active user's credentials from a token.
+   *
+   * @webonly
+   *
+   * @example
+   * ```javascript
+   * 
+   *  const users = await retrieveUserFromToken(token);
+   * 
+   * ```
+   *
+   * @param token the authentication token object.
+   * @return active user.
+   */
+  async retrieveUserFromToken(token) {
+    if (token) {
+      try {
         const userCredential = await this.auth().signInWithCustomToken(token);
         const idTokenResult = await userCredential.user.getIdTokenResult();
         var claims;
@@ -251,7 +280,10 @@ class FirebaseDataSource extends DataSource {
      * @return javascript object of the document that were added.
      */
   async addDocument(args) {
-    const { collection, data } = args;
+    const { collection, data, token } = args;
+    if (!this.activeUser && token){
+      this.activeUser = await this.retrieveUserFromToken(token);
+    };
     if (this.activeUser) {
       const collectionReference = this.db.collection(collection);
       var documentReference;
@@ -295,7 +327,10 @@ class FirebaseDataSource extends DataSource {
    * @return true.
    */
   async updateDocument(args) {
-    const { collection, data } = args;
+    const { collection, data, token } = args;
+    if (!this.activeUser && token){
+      this.activeUser = await this.retrieveUserFromToken(token);
+    };
     if (this.activeUser) {
       const documentReference = this.db.collection(collection).doc(documentId);
       if (data.id) delete data.id;
