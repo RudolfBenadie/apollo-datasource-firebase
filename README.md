@@ -5,7 +5,7 @@
 
 Connect your GraphQL server to Google Firebase using DataSources.
 
-## GraphQL Data Source
+## Firebase Data Source
 
 ### Install
 
