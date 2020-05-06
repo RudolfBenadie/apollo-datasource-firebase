@@ -388,7 +388,10 @@ class FirebaseDataSource extends DataSource {
    * @return Array of documents.
    */
   async getDocuments(args) {
-    const { collection } = args;
+    const { collection, token } = args;
+    if (!this.activeUser && token){
+      this.activeUser = await this.retrieveUserFromToken(token);
+    };
     if (this.activeUser) {
       try {
         const queryRef = this.db.collection(collection);
