@@ -393,14 +393,17 @@ class FirebaseDataSource extends DataSource {
    */
   async getDocumentById(args) {
     const { collection, id } = args;
+    var document = null;
     if (this.activeUser) {
       try {
-        const queryRef = this.db.collection(collection).doc(id);
-        var documentSnapshot = await queryRef.get();
-        var document = {
+        const docRef = this.db.collection(collection).doc(id);
+        var documentSnapshot = await docRef.get();
+        if (documentSnapshot.exists) {
+          document = {
             id: documentSnapshot.id,
             ...documentSnapshot.data()
           }
+        }
         return document;
       } catch (err) {
         throw new Error('Function getDocumentById failed.', err);
