@@ -164,10 +164,10 @@ class FirebaseDataSource extends DataSource {
       for (const property in user.customClaims){
         user.customClaims[property] = tryParseBool(user.customClaims[property]);
       }
-    })
+    });
     return { 
       users: listUsersResult.users, 
-      pageSize: listUsersResult.pageSize, 
+      pageSize: listUsersResult.pageSize || pageSize, 
       pageToken: listUsersResult.pageToken 
     };
   };
