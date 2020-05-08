@@ -72,11 +72,7 @@ class FirebaseDataSource extends DataSource {
    * @example
    * ```javascript
    * 
-   *  const args = {
-   *    pageSize: 20,
-   *    pageToken: null
-   *  }
-   *  const users = await getUsersList(args);
+   *  const users = await retrieveUserFromRequest(req);
    * 
    * ```
    *
@@ -154,17 +150,26 @@ class FirebaseDataSource extends DataSource {
    *    pageSize: 20,
    *    pageToken: null
    *  }
-   *  const users = await getUsersList(args);
+   *  const users = await getPageOfUsers(args);
    * 
    * ```
    *
    * @param args An object of arguments.
-   * @return list of users.
+   * @return page object of users.
    */
-  async getUsersList(args) {
+  async getPageOfUsers(args) {
     const { pageSize, pageToken } = args;
     const listUsersResult = await admin.auth().listUsers(pageSize || 50, pageToken);
-    return listUsersResult;
+    listUsersResult.users.forEach(user => {
+      for (const property in user.customClaims){
+        user.customClaims[property] = tryParseBool(user.customClaims[property]);
+      }
+    });
+    return { 
+      users: listUsersResult.users, 
+      pageSize: listUsersResult.pageSize || pageSize, 
+      pageToken: listUsersResult.pageToken 
+    };
   };
 
   /** Sign up a new user in firestore with username and password.
@@ -388,14 +393,17 @@ class FirebaseDataSource extends DataSource {
    */
   async getDocumentById(args) {
     const { collection, id } = args;
+    var document = null;
     if (this.activeUser) {
       try {
-        const queryRef = this.db.collection(collection).doc(id);
-        var documentSnapshot = await queryRef.get();
-        var document = {
+        const docRef = this.db.collection(collection).doc(id);
+        var documentSnapshot = await docRef.get();
+        if (documentSnapshot.exists) {
+          document = {
             id: documentSnapshot.id,
             ...documentSnapshot.data()
           }
+        }
         return document;
       } catch (err) {
         throw new Error('Function getDocumentById failed.', err);
