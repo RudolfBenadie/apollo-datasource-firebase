@@ -72,11 +72,7 @@ class FirebaseDataSource extends DataSource {
    * @example
    * ```javascript
    * 
-   *  const args = {
-   *    pageSize: 20,
-   *    pageToken: null
-   *  }
-   *  const users = await getUsersList(args);
+   *  const users = await retrieveUserFromRequest(req);
    * 
    * ```
    *
@@ -154,14 +150,14 @@ class FirebaseDataSource extends DataSource {
    *    pageSize: 20,
    *    pageToken: null
    *  }
-   *  const users = await getUsersList(args);
+   *  const users = await getPageOfUsers(args);
    * 
    * ```
    *
    * @param args An object of arguments.
-   * @return list of users.
+   * @return page object of users.
    */
-  async getUsersList(args) {
+  async getPageOfUsers(args) {
     const { pageSize, pageToken } = args;
     const listUsersResult = await admin.auth().listUsers(pageSize || 50, pageToken);
     listUsersResult.users.forEach(user => {
@@ -169,7 +165,11 @@ class FirebaseDataSource extends DataSource {
         user.customClaims[property] = tryParseBool(user.customClaims[property]);
       }
     })
-    return listUsersResult.users;
+    return { 
+      users: listUsersResult.users, 
+      pageSize: listUsersResult.pageSize, 
+      pageToken: listUsersResult.pageToken 
+    };
   };
 
   /** Sign up a new user in firestore with username and password.
