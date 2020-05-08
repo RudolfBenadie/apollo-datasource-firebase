@@ -164,7 +164,12 @@ class FirebaseDataSource extends DataSource {
   async getUsersList(args) {
     const { pageSize, pageToken } = args;
     const listUsersResult = await admin.auth().listUsers(pageSize || 50, pageToken);
-    return listUsersResult;
+    listUsersResult.users.forEach(user => {
+      for (const property in user.customClaims){
+        user.customClaims[property] = tryParseBool(user.customClaims[property]);
+      }
+    })
+    return listUsersResult.users;
   };
 
   /** Sign up a new user in firestore with username and password.
