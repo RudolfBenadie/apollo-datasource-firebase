@@ -161,14 +161,14 @@ class FirebaseDataSource extends DataSource {
     const { pageSize, pageToken } = args;
     const listUsersResult = await admin.auth().listUsers(pageSize || 50, pageToken);
     listUsersResult.users.forEach(user => {
-      for (const property in user.customClaims){
+      for (const property in user.customClaims) {
         user.customClaims[property] = tryParseBool(user.customClaims[property]);
       }
     });
-    return { 
-      users: listUsersResult.users, 
-      pageSize: listUsersResult.pageSize || pageSize, 
-      pageToken: listUsersResult.pageToken 
+    return {
+      users: listUsersResult.users,
+      pageSize: listUsersResult.pageSize || pageSize,
+      pageToken: listUsersResult.pageToken
     };
   };
 
@@ -262,6 +262,51 @@ class FirebaseDataSource extends DataSource {
       console.log('Sign in error', e)
       throw e
     }
+  };
+
+  /** Update a registered user's info and custom claims.
+   *
+   * @webonly
+   *
+   * @example
+   * ```javascript
+   * 
+   *  const user = {
+   *    id: "4FVas9I0oTran87Hjf",
+   *    email: "user@mail.com",
+   *    password: "AStrongPassword", {This will reset an existing password}
+   *    displayName: "A Name",
+   *    disabled: false
+   *    customClaims: {
+   *      admin: false,
+   *      someRole: true
+   *    }
+   *  }
+   *  const user = await updateUserInfo(user);
+   * 
+   * ```
+   *
+   * @param user A user object with custom claims.
+   * @return user.
+   */
+  async updateUserInfo(user) {
+    var customClaims = { admin: false };
+    var uid = null;
+    if (user.id) {
+      uid = user.id;
+      delete user.id;
+    } else {
+      throw new Error('User argument must have a uid to change the user info.')
+    };
+    if (user.customClaims) {
+      customClaims = { ...customClaims, ...user.customClaims };
+      admin.auth().setCustomUserClaims(uid, customClaims);
+      delete user.customClaims;
+    }
+    if (Object.keys(user).length > 0) {
+      user = await admin.auth().updateUser(uid, user);
+    }
+    return { ...user, id: uid, customClaims };
   };
 
 
