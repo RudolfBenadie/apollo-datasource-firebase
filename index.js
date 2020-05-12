@@ -492,7 +492,7 @@ class FirebaseDataSource extends DataSource {
   async getDocuments(args) {
     const { collection } = args;
     if (this.activeUser.errors && this.activeUser.errors.length > 0) {
-      throw new Error("User authentication error", errors);
+      throw new Error("User authentication error", this.activeUser.errors);
     };
     if (this.activeUser) {
       try {
@@ -536,7 +536,7 @@ class FirebaseDataSource extends DataSource {
     const filter = { ...this.defaultFilterOptions, ...filterArgs };
     const page = { ...this.defaultPageOptions, ...pageArgs };
     if (this.activeUser.errors && this.activeUser.errors.length > 0) {
-      throw new Error("User authentication error", errors);
+      throw new Error("User authentication error", this.activeUser.errors);
     };
     if (this.activeUser) {
       try {
