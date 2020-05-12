@@ -533,38 +533,38 @@ class FirebaseDataSource extends DataSource {
    */
   async getPageOfDocuments(args) {
     const { collection, filterArgs, pageArgs } = args;
-    const filter = { ...this.defaultFilterOptions, ...filterArgs };
-    const page = { ...this.defaultPageOptions, ...pageArgs };
+    const filterOptions = { ...this.defaultFilterOptions, ...filterArgs };
+    const pageOptions = { ...this.defaultPageOptions, ...pageArgs };
     if (this.activeUser.errors && this.activeUser.errors.length > 0) {
       throw new Error("User authentication error", this.activeUser.errors);
     };
     if (this.activeUser) {
       try {
-        const queryRef = this.db.collection(collection);
-        if (filter.orderBy && filter.orderBy !== "") {
-          queryRef = queryRef.orderBy(filter.orderBy, filter.sortOrder);
+        var queryRef = this.db.collection(collection);
+        if (filterOptions.orderBy && filterOptions.orderBy !== "") {
+          queryRef = queryRef.orderBy(filterOptions.orderBy, filterOptions.sortOrder);
         };
-        if (filter.where && filter.where.length > 0) {
-          for (item in filter.where) {
+        if (filterOptions.where && filterOptions.where.length > 0) {
+          for (item in filterOptions.where) {
             if (item.field && item.field !== "" && field.value && field.value !== "" && item.condition) {
               queryRef = queryRef.where(item.field, item.condition !== "" ? item.condition : "", item.value);
             }
           }
         };
-        if (page.cursor && page.cursor.length > 0) {
-          switch (page.direction) {
+        if (pageOptions.cursor && pageOptions.cursor.length > 0) {
+          switch (pageOptions.direction) {
             case 'forward':
               var forwardCursor = await this.db.collection(collection)
-                .doc(page.cursor[page.cursor.length - 1])
+                .doc(pageOptions.cursor[pageOptions.cursor.length - 1])
                 .get();
               queryRef = queryRef
                 .startAfter(forwardCursor);
               break;
             case 'back':
-              page.cursor = page.cursor.slice(0, page.cursor.length - 2);
-              if (page.cursor.length > 0) {
+              pageOptions.cursor = pageOptions.cursor.slice(0, pageOptions.cursor.length - 2);
+              if (pageOptions.cursor.length > 0) {
                 var backCursor = await this.db.collection(collection)
-                  .doc(page.cursor[page.cursor.length - 1])
+                  .doc(pageOptions.cursor[pageOptions.cursor.length - 1])
                   .get();
                 queryRef = queryRef
                   .startAfter(backCursor);
@@ -574,17 +574,17 @@ class FirebaseDataSource extends DataSource {
               break;
           }
         };
-        var querySnapshot = await queryRef.limit(page.pageSize).get();
+        var querySnapshot = await queryRef.limit(pageOptions.pageSize).get();
         var documents = [];
         if (querySnapshot.docs.length > 0) {
-          page.cursor.push(querySnapshot.docs[querySnapshot.docs.length - 1].id);
+          pageOptions.cursor.push(querySnapshot.docs[querySnapshot.docs.length - 1].id);
           documents = querySnapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
           }));
         };
-        if (documents.length === 0 && page.cursor.length) throw new Error("No more paged data.");
-        const result = { documents, filter, page };
+        if (documents.length === 0 && pageOptions.cursor.length) throw new Error("No more paged data.");
+        const result = { documents, filterOptions, pageOptions };
         return result;
       } catch (err) {
         throw err;
