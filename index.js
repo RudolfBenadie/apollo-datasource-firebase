@@ -341,7 +341,7 @@ class FirebaseDataSource extends DataSource {
      */
   async addDocument(args) {
     const { collection, data } = args;
-    if (this.activeUser.errors && this.activeUser.errros.length > 0) {
+    if (this.activeUser.errors && this.activeUser.errors.length > 0) {
       throw new Error("User authentication error", errors);
     };
     if (this.activeUser) {
