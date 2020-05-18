@@ -545,11 +545,11 @@ class FirebaseDataSource extends DataSource {
           queryRef = queryRef.orderBy(filterOptions.orderBy, filterOptions.sortOrder);
         };
         if (filterOptions.where && filterOptions.where.length > 0) {
-          for (item in filterOptions.where) {
-            if (item.field && item.field !== "" && field.value && field.value !== "" && item.condition) {
-              queryRef = queryRef.where(item.field, item.condition !== "" ? item.condition : "", item.value);
+          filterOptions.where.forEach(item => {
+            if (item.fieldName && item.fieldName !== "" && item.value && item.value !== "" && item.condition) {
+              queryRef = queryRef.where(item.fieldName, item.condition !== "" ? item.condition : "", item.value);
             }
-          }
+          })
         };
         if (pageOptions.cursor && pageOptions.cursor.length > 0) {
           switch (pageOptions.direction) {
