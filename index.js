@@ -494,13 +494,17 @@ class FirebaseDataSource extends DataSource {
    * @return Array of documents.
    */
   async getDocuments(args) {
-    const { collection } = args;
+    const { collection, filterArgs } = args;
+    const filterOptions = { ...this.defaultFilterOptions, ...filterArgs };
     if (this.activeUser.errors && this.activeUser.errors.length > 0) {
       throw new Error("User authentication error", this.activeUser.errors);
     };
     if (this.activeUser) {
       try {
-        const queryRef = this.db.collection(collection);
+        var queryRef = this.db.collection(collection);
+        if (filterOptions.orderBy && filterOptions.orderBy !== "") {
+          queryRef = queryRef.orderBy(filterOptions.orderBy, filterOptions.sortOrder);
+        };
         var querySnapshot = await queryRef.get();
         var documents = [];
         if (querySnapshot.docs.length > 0) {
