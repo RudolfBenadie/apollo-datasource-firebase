@@ -48,7 +48,7 @@ class FirebaseDataSource extends DataSource {
       orderBy: "",
       sortOrder: "asc",
       where: [
-        { field: "", condition: "", value: "" }
+        { field: "", operator: "", value: "" }
       ]
     };
     this.defaultPageOptions = {
@@ -554,8 +554,8 @@ class FirebaseDataSource extends DataSource {
         };
         if (filterOptions.where && filterOptions.where.length > 0) {
           filterOptions.where.forEach(item => {
-            if (item.fieldName && item.fieldName !== "" && item.value && item.value !== "" && item.condition) {
-              queryRef = queryRef.where(item.fieldName, item.condition !== "" ? item.condition : "", item.value);
+            if (item.fieldName && item.fieldName !== "" && item.value && item.value !== "" && item.operator) {
+              queryRef = queryRef.where(item.fieldName, item.operator !== "" ? item.operator : "", item.value);
             }
           })
         };
