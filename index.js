@@ -8,8 +8,9 @@ const tryParseBool = (value) => {
     if (value.toLowerCase() === "true") return true;
     if (value.toLowerCase() === "false") return false;
     return value;
-  } catch {
-    return value;
+  } catch (e) {
+    console.log(e.message);
+    return value; 
   }
 };
 
