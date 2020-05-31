@@ -14,6 +14,8 @@ const tryParseBool = (value) => {
   }
 };
 
+const reservedClaims = ["acr","amr","at_hash","aud","auth_time","azp","cnf","c_hash","exp","firebase","iat","iss","jti","nbf","nonce","sub"];
+
 class FirebaseDataSource extends DataSource {
 
   constructor({ firebaseOptions, serviceAccount, databaseURL }) {
@@ -116,7 +118,7 @@ class FirebaseDataSource extends DataSource {
         const idTokenResult = await userCredential.user.getIdTokenResult();
         var claims;
         for (const key in idTokenResult.claims) {
-          if (['iss', 'aud', 'auth_time', 'user_id', 'sub', 'iat', 'exp', 'firebase'].indexOf(key) === -1) {
+          if (reservedClaims.indexOf(key) === -1) {
             claims = { ...claims, [key]: tryParseBool(idTokenResult.claims[key]) };
           };
         };
@@ -249,7 +251,7 @@ class FirebaseDataSource extends DataSource {
       var idTokenResult = await this.auth().currentUser.getIdTokenResult();
       var claims;
       for (const key in idTokenResult.claims) {
-        if (['iss', 'aud', 'auth_time', 'user_id', 'sub', 'iat', 'exp', 'firebase'].indexOf(key) === -1) {
+        if (reservedClaims.indexOf(key) === -1) {
           claims = { ...claims, [key]: tryParseBool(idTokenResult.claims[key]) };
         }
       };
@@ -268,7 +270,55 @@ class FirebaseDataSource extends DataSource {
     }
   };
 
-  /** Update a registered user's info and custom claims.
+    /** Force a refresh of the current user's id token.
+   *
+   * @webonly
+   *
+   * @example
+   * ```javascript
+   * 
+   *  const users = await refreshIdToken(token);
+   * 
+   * ```
+   *
+   * @param token the authentication token object.
+   * @return active user.
+   */
+  async userRefreshIdToken(token) {
+    var errors = [];
+    var activeUser = {};
+    if (token) {
+
+      if (!this.activeUser || this.activeUser.token !== token) {
+        throw new Error("The token supplied does not match the  current loggen in user's credentials.");
+      }
+      try {
+        const userCredential = await this.auth().signInWithCustomToken(token);
+        const idTokenResult = await userCredential.user.getIdTokenResult();
+        var claims;
+        for (const key in idTokenResult.claims) {
+          if (reservedClaims.indexOf(key) === -1) {
+            claims = { ...claims, [key]: tryParseBool(idTokenResult.claims[key]) };
+          };
+        };
+        if (!('admin' in claims)) claim = { ...claims, admin: false };
+        activeUser = {
+          ...userCredential.user.toJSON(),
+          customClaims: claims,
+          token
+        };
+
+      } catch (e) {
+        errors.push(new Error('Could not validate user from token.', e));
+      };
+    } else {
+      errors.push(new Error("No token has been supplied to verify."));
+    };
+    if (errors.length > 0) activeUser = { errors };
+    return activeUser;
+  };
+
+/** Update a registered user's info and custom claims.
    *
    * @webonly
    *
