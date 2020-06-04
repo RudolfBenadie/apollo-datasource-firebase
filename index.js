@@ -302,11 +302,11 @@ class FirebaseDataSource extends DataSource {
           };
         };
         if (!('admin' in claims)) claim = { ...claims, admin: false };
-        const token = await admin.auth().createCustomToken(signIn.user.uid, claims);
+        var newToken = await admin.auth().createCustomToken(signIn.user.uid, claims);
         activeUser = {
           ...userCredential.user.toJSON(),
           customClaims: claims,
-          token
+          token: newToken
         };
 
       } catch (e) {
