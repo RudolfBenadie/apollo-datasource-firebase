@@ -9,12 +9,11 @@ const tryParseBool = (value) => {
     if (value.toLowerCase() === "false") return false;
     return value;
   } catch (e) {
-    console.log(e.message);
-    return value; 
+    return value;
   }
 };
 
-const reservedClaims = ["acr","amr","at_hash","aud","auth_time","azp","cnf","c_hash","exp","firebase","iat","iss","jti","nbf","nonce","sub"];
+const reservedClaims = ["acr", "amr", "at_hash", "aud", "auth_time", "azp", "cnf", "c_hash", "exp", "firebase", "iat", "iss", "jti", "nbf", "nonce", "sub"];
 
 class FirebaseDataSource extends DataSource {
 
@@ -270,20 +269,20 @@ class FirebaseDataSource extends DataSource {
     }
   };
 
-    /** Force a refresh of the current user's id token.
-   *
-   * @webonly
-   *
-   * @example
-   * ```javascript
-   * 
-   *  const users = await refreshIdToken(token);
-   * 
-   * ```
-   *
-   * @param token the authentication token object.
-   * @return active user.
-   */
+  /** Force a refresh of the current user's id token.
+ *
+ * @webonly
+ *
+ * @example
+ * ```javascript
+ * 
+ *  const users = await refreshIdToken(token);
+ * 
+ * ```
+ *
+ * @param token the authentication token object.
+ * @return active user.
+ */
   async userRefreshIdToken(token) {
     var errors = [];
     var activeUser = {};
@@ -302,10 +301,11 @@ class FirebaseDataSource extends DataSource {
           };
         };
         if (!('admin' in claims)) claim = { ...claims, admin: false };
+        var newToken = await admin.auth().createCustomToken(userCredential.user.uid, claims);
         activeUser = {
           ...userCredential.user.toJSON(),
           customClaims: claims,
-          token
+          token: newToken
         };
 
       } catch (e) {
@@ -318,30 +318,30 @@ class FirebaseDataSource extends DataSource {
     return activeUser;
   };
 
-/** Update a registered user's info and custom claims.
-   *
-   * @webonly
-   *
-   * @example
-   * ```javascript
-   * 
-   *  const user = {
-   *    id: "4FVas9I0oTran87Hjf",
-   *    email: "user@mail.com",
-   *    password: "AStrongPassword", {This will reset an existing password}
-   *    displayName: "A Name",
-   *    disabled: false
-   *    customClaims: {
-   *      admin: false,
-   *      someRole: true
-   *    }
-   *  }
-   * 
-   * ```
-   *
-   * @param user A user object with custom claims.
-   * @return user.
-   */
+  /** Update a registered user's info and custom claims.
+     *
+     * @webonly
+     *
+     * @example
+     * ```javascript
+     * 
+     *  const user = {
+     *    id: "4FVas9I0oTran87Hjf",
+     *    email: "user@mail.com",
+     *    password: "AStrongPassword", {This will reset an existing password}
+     *    displayName: "A Name",
+     *    disabled: false
+     *    customClaims: {
+     *      admin: false,
+     *      someRole: true
+     *    }
+     *  }
+     * 
+     * ```
+     *
+     * @param user A user object with custom claims.
+     * @return user.
+     */
   async updateUserInfo(user) {
     if (this.activeUser.errors && this.activeUser.errors.length > 0) {
       throw new Error("User authentication error", this.activeUser.errors);
