@@ -448,7 +448,7 @@ class FirebaseDataSource extends DataSource {
       if (data.id) {
         const documentReference = this.db.collection(collection).doc(data.id);
         delete data.id;
-        await documentReference.set(data, {merge: true});
+        await documentReference.set(data, { merge: true });
         return true;
       } else {
         throw new Error('The document to update has no id.')
@@ -557,7 +557,10 @@ class FirebaseDataSource extends DataSource {
       try {
         var queryRef = this.db.collection(collection);
         if (filterOptions.orderBy && filterOptions.orderBy !== "") {
-          queryRef = queryRef.orderBy(filterOptions.orderBy, filterOptions.sortOrder);
+          const sortOrderArray = filterOptions.sortOrder.split(',');
+          filterOptions.orderBy.split(',').map((item, index) => {
+            queryRef = queryRef.orderBy(item, sortOrderArray[index] ? sortOrderArray[index] : "asc");
+          })
         };
         var querySnapshot = await queryRef.get();
         var documents = [];
@@ -604,7 +607,10 @@ class FirebaseDataSource extends DataSource {
       try {
         var queryRef = this.db.collection(collection);
         if (filterOptions.orderBy && filterOptions.orderBy !== "") {
-          queryRef = queryRef.orderBy(filterOptions.orderBy, filterOptions.sortOrder);
+          const sortOrderArray = filterOptions.sortOrder.split(',');
+          filterOptions.orderBy.split(',').map((item, index) => {
+            queryRef = queryRef.orderBy(item, sortOrderArray[index] ? sortOrderArray[index] : "asc");
+          })
         };
         if (filterOptions.where && filterOptions.where.length > 0) {
           filterOptions.where.forEach(item => {
