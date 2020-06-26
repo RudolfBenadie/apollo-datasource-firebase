@@ -46,6 +46,7 @@ class FirebaseDataSource extends DataSource {
     this.defaultCustomClaims = {
       admin: false
     };
+
     this.defaultFilterOptions = {
       orderBy: "",
       sortOrder: "asc",
@@ -53,11 +54,13 @@ class FirebaseDataSource extends DataSource {
         { field: "", operator: "", value: "" }
       ]
     };
+
     this.defaultPageOptions = {
       pageSize: 20,
       direction: "forward",
       cursor: []
     };
+
   };
 
   async initialize(config) {
@@ -445,7 +448,7 @@ class FirebaseDataSource extends DataSource {
       if (data.id) {
         const documentReference = this.db.collection(collection).doc(data.id);
         delete data.id;
-        await documentReference.update(data);
+        await documentReference.set(data, {merge: true});
         return true;
       } else {
         throw new Error('The document to update has no id.')
