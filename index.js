@@ -8,10 +8,12 @@ const tryParseBool = (value) => {
     if (value.toLowerCase() === "true") return true;
     if (value.toLowerCase() === "false") return false;
     return value;
-  } catch {
+  } catch (e) {
     return value;
   }
 };
+
+const reservedClaims = ["acr", "amr", "at_hash", "aud", "auth_time", "azp", "cnf", "c_hash", "exp", "firebase", "iat", "iss", "jti", "nbf", "nonce", "sub"];
 
 class FirebaseDataSource extends DataSource {
 
@@ -44,18 +46,21 @@ class FirebaseDataSource extends DataSource {
     this.defaultCustomClaims = {
       admin: false
     };
+
     this.defaultFilterOptions = {
       orderBy: "",
       sortOrder: "asc",
       where: [
-        { field: "", condition: "", value: "" }
+        { field: "", operator: "", value: "" }
       ]
     };
+
     this.defaultPageOptions = {
       pageSize: 20,
       direction: "forward",
       cursor: []
     };
+
   };
 
   async initialize(config) {
@@ -72,11 +77,7 @@ class FirebaseDataSource extends DataSource {
    * @example
    * ```javascript
    * 
-   *  const args = {
-   *    pageSize: 20,
-   *    pageToken: null
-   *  }
-   *  const users = await getUsersList(args);
+   *  const users = await retrieveUserFromRequest(req);
    * 
    * ```
    *
@@ -84,19 +85,16 @@ class FirebaseDataSource extends DataSource {
    * @return active user.
    */
   async retrieveUserFromRequest(req) {
+    var errors = [];
+    var activeUser = {};
     const token = req.headers['x-token'];
     if (token) {
-      try {
-        var activeUser = await this.retrieveUserFromToken(token);
-        return activeUser;
-
-      } catch (e) {
-        console.log('Could not validate user from token.', e)
-        throw e
-      };
+      var activeUser = await this.retrieveUserFromToken(token);
     } else {
-      return null;
+      errors.push(new Error("The request has no token in the headers to verify."));
     };
+    if (errors.length > 0) activeUser = { errors };
+    return activeUser;
   };
 
   /** Get the active user's credentials from a token.
@@ -114,31 +112,33 @@ class FirebaseDataSource extends DataSource {
    * @return active user.
    */
   async retrieveUserFromToken(token) {
+    var errors = [];
+    var activeUser = {};
     if (token) {
       try {
         const userCredential = await this.auth().signInWithCustomToken(token);
         const idTokenResult = await userCredential.user.getIdTokenResult();
         var claims;
         for (const key in idTokenResult.claims) {
-          if (['iss', 'aud', 'auth_time', 'user_id', 'sub', 'iat', 'exp', 'firebase'].indexOf(key) === -1) {
+          if (reservedClaims.indexOf(key) === -1) {
             claims = { ...claims, [key]: tryParseBool(idTokenResult.claims[key]) };
           };
         };
         if (!('admin' in claims)) claim = { ...claims, admin: false };
-        const activeUser = {
+        activeUser = {
           ...userCredential.user.toJSON(),
           customClaims: claims,
           token
         };
-        return activeUser;
 
       } catch (e) {
-        console.log('Could not validate user from token.', e)
-        throw e
+        errors.push(new Error('Could not validate user from token.', e));
       };
     } else {
-      return null;
+      errors.push(new Error("No token has been supplied to verify."));
     };
+    if (errors.length > 0) activeUser = { errors };
+    return activeUser;
   };
 
   /* AUTH AND ADMIN FUNCTIONS */
@@ -154,17 +154,31 @@ class FirebaseDataSource extends DataSource {
    *    pageSize: 20,
    *    pageToken: null
    *  }
-   *  const users = await getUsersList(args);
+   *  const users = await getPageOfUsers(args);
    * 
    * ```
    *
    * @param args An object of arguments.
-   * @return list of users.
+   * @return page object of users.
    */
-  async getUsersList(args) {
-    const { pageSize, pageToken } = args;
-    const listUsersResult = await admin.auth().listUsers(pageSize || 50, pageToken);
-    return listUsersResult;
+  async getPageOfUsers(args) {
+    if (this.activeUser.errors && this.activeUser.errors.length > 0) {
+      throw new Error("User authentication error", this.activeUser.errors);
+    };
+    if (this.activeUser && this.activeUser.customClaims.admin) {
+      const { pageSize, pageToken } = args;
+      const listUsersResult = await admin.auth().listUsers(pageSize || 50, pageToken);
+      listUsersResult.users.forEach(user => {
+        for (const property in user.customClaims) {
+          user.customClaims[property] = tryParseBool(user.customClaims[property]);
+        }
+      });
+      return {
+        users: listUsersResult.users,
+        pageSize: listUsersResult.pageSize || pageSize,
+        pageToken: listUsersResult.pageToken
+      };
+    }
   };
 
   /** Sign up a new user in firestore with username and password.
@@ -178,7 +192,6 @@ class FirebaseDataSource extends DataSource {
    *    email: "user@mail.com",
    *    password: "AStrongPassword"
    *  }
-   *  const user = await userSignUp(args);
    * 
    * ```
    *
@@ -240,7 +253,7 @@ class FirebaseDataSource extends DataSource {
       var idTokenResult = await this.auth().currentUser.getIdTokenResult();
       var claims;
       for (const key in idTokenResult.claims) {
-        if (['iss', 'aud', 'auth_time', 'user_id', 'sub', 'iat', 'exp', 'firebase'].indexOf(key) === -1) {
+        if (reservedClaims.indexOf(key) === -1) {
           claims = { ...claims, [key]: tryParseBool(idTokenResult.claims[key]) };
         }
       };
@@ -256,6 +269,104 @@ class FirebaseDataSource extends DataSource {
     } catch (e) {
       console.log('Sign in error', e)
       throw e
+    }
+  };
+
+  /** Force a refresh of the current user's id token.
+ *
+ * @webonly
+ *
+ * @example
+ * ```javascript
+ * 
+ *  const users = await refreshIdToken(token);
+ * 
+ * ```
+ *
+ * @param token the authentication token object.
+ * @return active user.
+ */
+  async userRefreshIdToken(token) {
+    var errors = [];
+    var activeUser = {};
+    if (token) {
+
+      if (!this.activeUser || this.activeUser.token !== token) {
+        throw new Error("The token supplied does not match the  current loggen in user's credentials.");
+      }
+      try {
+        const userCredential = await this.auth().signInWithCustomToken(token);
+        const idTokenResult = await userCredential.user.getIdTokenResult();
+        var claims;
+        for (const key in idTokenResult.claims) {
+          if (reservedClaims.indexOf(key) === -1) {
+            claims = { ...claims, [key]: tryParseBool(idTokenResult.claims[key]) };
+          };
+        };
+        if (!('admin' in claims)) claim = { ...claims, admin: false };
+        var newToken = await admin.auth().createCustomToken(userCredential.user.uid, claims);
+        activeUser = {
+          ...userCredential.user.toJSON(),
+          customClaims: claims,
+          token: newToken
+        };
+
+      } catch (e) {
+        errors.push(new Error('Could not validate user from token.', e));
+      };
+    } else {
+      errors.push(new Error("No token has been supplied to verify."));
+    };
+    if (errors.length > 0) activeUser = { errors };
+    return activeUser;
+  };
+
+  /** Update a registered user's info and custom claims.
+     *
+     * @webonly
+     *
+     * @example
+     * ```javascript
+     * 
+     *  const user = {
+     *    id: "4FVas9I0oTran87Hjf",
+     *    email: "user@mail.com",
+     *    password: "AStrongPassword", {This will reset an existing password}
+     *    displayName: "A Name",
+     *    disabled: false
+     *    customClaims: {
+     *      admin: false,
+     *      someRole: true
+     *    }
+     *  }
+     * 
+     * ```
+     *
+     * @param user A user object with custom claims.
+     * @return user.
+     */
+  async updateUserInfo(user) {
+    if (this.activeUser.errors && this.activeUser.errors.length > 0) {
+      throw new Error("User authentication error", this.activeUser.errors);
+    };
+    if (this.activeUser && (this.activeUser.customClaims.admin || user.email === this.activeUser.email)) {
+      var customClaims = { admin: false };
+      var uid = null;
+      if (user.uid) {
+        uid = user.uid;
+        delete user.uid;
+      } else {
+        throw new Error('User argument must have a uid to change the user info.')
+      };
+      if (user.customClaims) {
+        customClaims = { ...customClaims, ...user.customClaims };
+        admin.auth().setCustomUserClaims(uid, customClaims);
+        delete user.customClaims;
+      }
+      if (Object.keys(user).length > 0) {
+        user = await admin.auth().updateUser(uid, user);
+      }
+      return { ...user, uid, customClaims };
     }
   };
 
@@ -276,7 +387,6 @@ class FirebaseDataSource extends DataSource {
      *      lastName: "Doe"
      *    }
      *  }
-     *  const user = await addDocument(args);
      * 
      * ```
      *
@@ -285,6 +395,9 @@ class FirebaseDataSource extends DataSource {
      */
   async addDocument(args) {
     const { collection, data } = args;
+    if (this.activeUser.errors && this.activeUser.errors.length > 0) {
+      throw new Error("User authentication error", this.activeUser.errors);
+    };
     if (this.activeUser) {
       const collectionReference = this.db.collection(collection);
       var documentReference;
@@ -320,7 +433,6 @@ class FirebaseDataSource extends DataSource {
    *      lastName: "Doe"
    *    }
    *  }
-   *  await updateDocument(args);
    * 
    * ```
    *
@@ -329,11 +441,18 @@ class FirebaseDataSource extends DataSource {
    */
   async updateDocument(args) {
     const { collection, data } = args;
+    if (this.activeUser.errors && this.activeUser.errors.length > 0) {
+      throw new Error("User authentication error", this.activeUser.errors);
+    };
     if (this.activeUser) {
-      const documentReference = this.db.collection(collection).doc(documentId);
-      if (data.id) delete data.id;
-      await documentReference.update(data);
-      return true;
+      if (data.id) {
+        const documentReference = this.db.collection(collection).doc(data.id);
+        delete data.id;
+        await documentReference.set(data, { merge: true });
+        return true;
+      } else {
+        throw new Error('The document to update has no id.')
+      }
     } else {
       throw new Error('Not Authorised');
     };
@@ -350,7 +469,6 @@ class FirebaseDataSource extends DataSource {
    *    collection: "users",
    *    documentId: "3yXfDg56UilE2Wq"
    *  }
-   *  await deleteDocument(args);
    * 
    * ```
    *
@@ -359,6 +477,9 @@ class FirebaseDataSource extends DataSource {
    */
   async deleteDocument(args) {
     const { collection, documentId } = args;
+    if (this.activeUser.errors && this.activeUser.errors.length > 0) {
+      throw new Error("User authentication error", this.activeUser.errors);
+    };
     if (this.activeUser) {
       const documentReference = this.db.collection(collection).doc(documentId);
       await documentReference.delete();
@@ -379,7 +500,6 @@ class FirebaseDataSource extends DataSource {
    *    collection: "users",
    *    id: "Van4Tij98lKfbOKP0"
    *  }
-   *  const users = await getDocumentById(args);
    * 
    * ```
    *
@@ -388,14 +508,20 @@ class FirebaseDataSource extends DataSource {
    */
   async getDocumentById(args) {
     const { collection, id } = args;
+    var document = null;
+    if (this.activeUser.errors && this.activeUser.errors.length > 0) {
+      throw new Error("User authentication error", this.activeUser.errors);
+    };
     if (this.activeUser) {
       try {
-        const queryRef = this.db.collection(collection).doc(id);
-        var documentSnapshot = await queryRef.get();
-        var document = {
+        const docRef = this.db.collection(collection).doc(id);
+        var documentSnapshot = await docRef.get();
+        if (documentSnapshot.exists) {
+          document = {
             id: documentSnapshot.id,
             ...documentSnapshot.data()
           }
+        }
         return document;
       } catch (err) {
         throw new Error('Function getDocumentById failed.', err);
@@ -415,7 +541,6 @@ class FirebaseDataSource extends DataSource {
    *  const args = {
    *    collection: "users"
    *  }
-   *  const users = await getDocuments(args);
    * 
    * ```
    *
@@ -423,10 +548,20 @@ class FirebaseDataSource extends DataSource {
    * @return Array of documents.
    */
   async getDocuments(args) {
-    const { collection } = args;
+    const { collection, filterArgs } = args;
+    const filterOptions = { ...this.defaultFilterOptions, ...filterArgs };
+    if (this.activeUser.errors && this.activeUser.errors.length > 0) {
+      throw new Error("User authentication error", this.activeUser.errors);
+    };
     if (this.activeUser) {
       try {
-        const queryRef = this.db.collection(collection);
+        var queryRef = this.db.collection(collection);
+        if (filterOptions.orderBy && filterOptions.orderBy !== "") {
+          const sortOrderArray = filterOptions.sortOrder.split(',');
+          filterOptions.orderBy.split(',').map((item, index) => {
+            queryRef = queryRef.orderBy(item, sortOrderArray[index] ? sortOrderArray[index] : "asc");
+          })
+        };
         var querySnapshot = await queryRef.get();
         var documents = [];
         if (querySnapshot.docs.length > 0) {
@@ -455,7 +590,6 @@ class FirebaseDataSource extends DataSource {
    *  const args = {
    *    collection: "users"
    *  }
-   *  const users = await getDocuments(args);
    * 
    * ```
    *
@@ -464,35 +598,41 @@ class FirebaseDataSource extends DataSource {
    */
   async getPageOfDocuments(args) {
     const { collection, filterArgs, pageArgs } = args;
-    const filter = { ...this.defaultFilterOptions, ...filterArgs };
-    const page = { ...this.defaultPageOptions, ...pageArgs };
+    const filterOptions = { ...this.defaultFilterOptions, ...filterArgs };
+    const pageOptions = { ...this.defaultPageOptions, ...pageArgs };
+    if (this.activeUser.errors && this.activeUser.errors.length > 0) {
+      throw new Error("User authentication error", this.activeUser.errors);
+    };
     if (this.activeUser) {
       try {
-        const queryRef = this.db.collection(collection);
-        if (filter.orderBy && filter.orderBy !== "") {
-          queryRef = queryRef.orderBy(filter.orderBy, filter.sortOrder);
+        var queryRef = this.db.collection(collection);
+        if (filterOptions.orderBy && filterOptions.orderBy !== "") {
+          const sortOrderArray = filterOptions.sortOrder.split(',');
+          filterOptions.orderBy.split(',').map((item, index) => {
+            queryRef = queryRef.orderBy(item, sortOrderArray[index] ? sortOrderArray[index] : "asc");
+          })
         };
-        if (filter.where && filter.where.length > 0) {
-          for (item in filter.where) {
-            if (item.field && item.field !== "" && field.value && field.value !== "" && item.condition) {
-              queryRef = queryRef.where(item.field, item.condition !== "" ? item.condition : "", item.value);
+        if (filterOptions.where && filterOptions.where.length > 0) {
+          filterOptions.where.forEach(item => {
+            if (item.fieldName && item.fieldName !== "" && item.value && item.value !== "" && item.operator) {
+              queryRef = queryRef.where(item.fieldName, item.operator !== "" ? item.operator : "", item.value);
             }
-          }
+          })
         };
-        if (page.cursor && page.cursor.length > 0) {
-          switch (page.direction) {
+        if (pageOptions.cursor && pageOptions.cursor.length > 0) {
+          switch (pageOptions.direction) {
             case 'forward':
               var forwardCursor = await this.db.collection(collection)
-                .doc(page.cursor[page.cursor.length - 1])
+                .doc(pageOptions.cursor[pageOptions.cursor.length - 1])
                 .get();
               queryRef = queryRef
                 .startAfter(forwardCursor);
               break;
             case 'back':
-              page.cursor = page.cursor.slice(0, page.cursor.length - 2);
-              if (page.cursor.length > 0) {
+              pageOptions.cursor = pageOptions.cursor.slice(0, pageOptions.cursor.length - 2);
+              if (pageOptions.cursor.length > 0) {
                 var backCursor = await this.db.collection(collection)
-                  .doc(page.cursor[page.cursor.length - 1])
+                  .doc(pageOptions.cursor[pageOptions.cursor.length - 1])
                   .get();
                 queryRef = queryRef
                   .startAfter(backCursor);
@@ -502,17 +642,17 @@ class FirebaseDataSource extends DataSource {
               break;
           }
         };
-        var querySnapshot = await queryRef.limit(page.pageSize).get();
+        var querySnapshot = await queryRef.limit(pageOptions.pageSize).get();
         var documents = [];
         if (querySnapshot.docs.length > 0) {
-          page.cursor.push(querySnapshot.docs[querySnapshot.docs.length - 1].id);
+          pageOptions.cursor.push(querySnapshot.docs[querySnapshot.docs.length - 1].id);
           documents = querySnapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
           }));
         };
-        if (documents.length === 0 && page.cursor.length) throw new Error("No more paged data.");
-        const result = { documents, filter, page };
+        if (documents.length === 0 && pageOptions.cursor.length) throw new Error("No more paged data.");
+        const result = { documents, filterOptions, pageOptions };
         return result;
       } catch (err) {
         throw err;
@@ -525,3 +665,4 @@ class FirebaseDataSource extends DataSource {
 }
 
 module.exports = FirebaseDataSource;
+
