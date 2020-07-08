@@ -531,6 +531,54 @@ class FirebaseDataSource extends DataSource {
     };
   };
 
+  /** Retrieve list of document IDs from a firestore collection.
+   *
+   * @webonly
+   *
+   * @example
+   * ```javascript
+   * 
+   *  const args = {
+   *    collection: "users"
+   *  }
+   * 
+   * ```
+   *
+   * @param args An object of arguments.
+   * @return Array of documents.
+   */
+  async listDocuments(args) {
+    const { collection, filterArgs } = args;
+    const filterOptions = { ...this.defaultFilterOptions, ...filterArgs };
+    if (this.activeUser.errors && this.activeUser.errors.length > 0) {
+      throw new Error("User authentication error", this.activeUser.errors);
+    };
+    if (this.activeUser) {
+      try {
+        var queryRef = this.db.collection(collection);
+        if (filterOptions.orderBy && filterOptions.orderBy !== "") {
+          const sortOrderArray = filterOptions.sortOrder.split(',');
+          filterOptions.orderBy.split(',').map((item, index) => {
+            queryRef = queryRef.orderBy(item, sortOrderArray[index] ? sortOrderArray[index] : "asc");
+          })
+        };
+        var querySnapshot = await queryRef.listDocuments();
+        var documents = [];
+        if (querySnapshot.docs.length > 0) {
+          documents = querySnapshot.docs.map(doc => ({
+            id: doc.id
+          }));
+        };
+        if (documents.length === 0) throw new Error("No data.");
+        return documents;
+      } catch (err) {
+        throw new Error('Function getDocuments failed.', err);
+      }
+    } else {
+      throw new Error('Not Authorised');
+    };
+  };
+
   /** Retrieve data from a firestore collection.
    *
    * @webonly
