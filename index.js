@@ -458,6 +458,84 @@ class FirebaseDataSource extends DataSource {
     };
   };
 
+  /** Add an array field element to a document in a firestore collection.
+   *
+   * @webonly
+   *
+   * @example
+   * ```javascript
+   * 
+   *  const args = {
+   *    collection: "collection",
+   *    id: "uniqueId",
+   *    arrayField: "fieldName",
+   *    arrayValue: "value"
+   *  }
+   * 
+   * ```
+   *
+   * @param args An object of arguments.
+   * @return true.
+   */
+  async addArrayElement(args) {
+    const { collection, id, arrayField, arrayValue } = args;
+    if (this.activeUser.errors && this.activeUser.errors.length > 0) {
+      throw new Error("User authentication error", this.activeUser.errors);
+    };
+    if (this.activeUser) {
+      if (id) {
+        const documentReference = this.db.collection(collection).doc(id);
+        await documentReference.update({
+          [arrayField]: firebase.firestore.FieldValue.arrayUnion(arrayValue)
+        });
+        return true;
+      } else {
+        throw new Error('The document to update has no id.')
+      }
+    } else {
+      throw new Error('Not Authorised');
+    };
+  };
+
+  /** Remove an array field element to a document in a firestore collection.
+   *
+   * @webonly
+   *
+   * @example
+   * ```javascript
+   * 
+   *  const args = {
+   *    collection: "collection",
+   *    id: "uniqueId",
+   *    arrayField: "fieldName",
+   *    arrayValue: "value"
+   *  }
+   * 
+   * ```
+   *
+   * @param args An object of arguments.
+   * @return true.
+   */
+  async removeArrayElement(args) {
+    const { collection, id, arrayField, arrayValue } = args;
+    if (this.activeUser.errors && this.activeUser.errors.length > 0) {
+      throw new Error("User authentication error", this.activeUser.errors);
+    };
+    if (this.activeUser) {
+      if (id) {
+        const documentReference = this.db.collection(collection).doc(id);
+        await documentReference.update({
+          [arrayField]: firebase.firestore.FieldValue.arrayRemove(arrayValue)
+        });
+        return true;
+      } else {
+        throw new Error('The document to update has no id.')
+      }
+    } else {
+      throw new Error('Not Authorised');
+    };
+  };
+
   /** Delete a document from a firestore collection.
    *
    * @webonly
