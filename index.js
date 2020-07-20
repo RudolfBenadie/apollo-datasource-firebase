@@ -536,6 +536,91 @@ class FirebaseDataSource extends DataSource {
     };
   };
 
+  /** Update a key in a map field in a document in a firestore collection.
+   *
+   * @webonly
+   *
+   * @example
+   * ```javascript
+   * 
+   *  const args = {
+   *    collection: "collection",
+   *    id: "uniqueId",
+   *    fieldName: "fieldName",
+   *    key: "key",
+   *    value: "value"
+   *  }
+   * 
+   * ```
+   *
+   * @param args An object of arguments.
+   * @return true.
+   */
+  async insertOrUpdateField(args) {
+    const { collection, id, fieldName, key, value } = args;
+    if (this.activeUser.errors && this.activeUser.errors.length > 0) {
+      throw new Error("User authentication error", this.activeUser.errors);
+    };
+    if (this.activeUser) {
+      try {
+        if (id) {
+          await firebase
+            .firestore()
+            .collection(collection)
+            .doc(id)
+            .set({ [fieldName]: { [key]: value } }, { merge: true });
+          return true
+        } else {
+          throw new Error('Not Authorised');
+        };
+      } catch (error) {
+        return error;
+      }
+    };
+  };
+
+  /** Remove a key from a map field in a document in a firestore collection.
+   *
+   * @webonly
+   *
+   * @example
+   * ```javascript
+   * 
+   *  const args = {
+   *    collection: "collection",
+   *    id: "uniqueId",
+   *    fieldName: "fieldName",
+   *    key: "key"
+   *  }
+   * 
+   * ```
+   *
+   * @param args An object of arguments.
+   * @return true.
+   */
+  async removeField(args) {
+    const { collection, id, fieldName, key } = args;
+    if (this.activeUser.errors && this.activeUser.errors.length > 0) {
+      throw new Error("User authentication error", this.activeUser.errors);
+    };
+    if (this.activeUser) {
+      try {
+        if (id) {
+          await firebase
+            .firestore()
+            .collection(collection)
+            .doc(id)
+            .set({ [fieldName]: { [key]: firebase.firestore.FieldValue.delete() } }, { merge: true });
+          return true
+        } else {
+          throw new Error('Not Authorised');
+        };
+      } catch (error) {
+        return error;
+      }
+    };
+  };
+
   /** Delete a document from a firestore collection.
    *
    * @webonly
