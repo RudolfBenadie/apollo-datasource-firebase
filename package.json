@@ -1,6 +1,6 @@
 {
   "name": "apollo-datasource-firebase",
-  "version": "0.0.37",
+  "version": "0.0.38",
   "description": "Firebase datasource for Apollo GraphQL server",
   "main": "index.js",
   "scripts": {
