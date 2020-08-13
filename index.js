@@ -68,6 +68,8 @@ class FirebaseDataSource extends DataSource {
     this.activeUser = await this.retrieveUserFromRequest(config.context.request);
   };
 
+  arrayUnion = firebase.firestore.FieldValue.arrayUnion;
+
   /* HELPER FUNCTIONS */
 
   /** Get the active user's credentials from the request object.
@@ -404,10 +406,10 @@ class FirebaseDataSource extends DataSource {
       if (data.id) {
         documentReference = collectionReference.doc(data.id);
         delete data.id;
-        await documentReference.set(data);
       } else {
-        documentReference = await collectionReference.add(data);
+        documentReference = collectionReference.doc();
       }
+      await documentReference.set(data, { merge: true });
       const documentSnapshot = await documentReference.get();
       return {
         id: documentSnapshot.id,
@@ -612,6 +614,71 @@ class FirebaseDataSource extends DataSource {
             .doc(id)
             .set({ [fieldName]: { [key]: firebase.firestore.FieldValue.delete() } }, { merge: true });
           return true
+        } else {
+          throw new Error('Not Authorised');
+        };
+      } catch (error) {
+        return error;
+      }
+    };
+  };
+
+  // Function: createNestedObject( base, names[, value] )
+  //   base: the object on which to create the hierarchy
+  //   names: an array of strings contaning the names of the objects
+  //   value (optional): if given, will be the last object in the hierarchy
+  // Returns: the last object in the hierarchy
+  createNestedObject(base, names, value) {
+    // If a value is given, remove the last name and keep it for later:
+    var lastName = arguments.length === 3 ? names.pop() : false;
+
+    // Walk the hierarchy, creating new objects where needed.
+    // If the lastName was removed, then the last object is not set yet:
+    for (var i = 0; i < names.length; i++) {
+      base = base[names[i]] = base[names[i]] || {};
+    }
+
+    // If a value was given, set it to the last name:
+    if (lastName) base = base[lastName] = firebase.firestore.FieldValue.increment(value);
+
+    // Return the last object in the hierarchy:
+    return base;
+  };
+
+  /** Increment field value in a document in a firestore collection.
+     *
+     * @webonly
+     *
+     * @example
+     * ```javascript
+     * 
+     *  const args = {
+     *  }
+     * 
+     * ```
+     *
+     * @param args An object of arguments.
+     * @return true.
+     */
+  async incrementFields(args) {
+    const { collection, id, fieldsAndValues } = args;
+    if (this.activeUser.errors && this.activeUser.errors.length > 0) {
+      throw new Error("User authentication error", this.activeUser.errors);
+    };
+    let data = {};
+    fieldsAndValues.forEach(kvp => {
+      let fields = kvp.fieldName.split(".");
+      this.createNestedObject(data, fields, kvp.value);
+    });
+    if (this.activeUser) {
+      try {
+        if (id) {
+          await firebase
+            .firestore()
+            .collection(collection)
+            .doc(id)
+            .set(data, { merge: true });
+          return true;
         } else {
           throw new Error('Not Authorised');
         };
