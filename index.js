@@ -68,8 +68,6 @@ class FirebaseDataSource extends DataSource {
     this.activeUser = await this.retrieveUserFromRequest(config.context.request);
   };
 
-  arrayUnion = firebase.firestore.FieldValue.arrayUnion;
-
   /* HELPER FUNCTIONS */
 
   /** Get the active user's credentials from the request object.
