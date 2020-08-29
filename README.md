@@ -65,8 +65,8 @@ class UsersAPI extends FirebaseDataSource {
     super(firebaseConfig);
   }
 
-  async getUsers(pageSize, pageToken) {
-    var usersListResult = await this.getUsersList({pageSize, pageToken});
+  async retrievePageOfUsers(pageSize, pageToken) {
+    var usersListResult = await this.getPageOfUsers({ pageSize, pageToken });
     return usersListResult;
   }
 
