@@ -132,7 +132,7 @@ class FirebaseDataSource extends DataSource {
         };
 
       } catch (e) {
-        errors.push(new Error('Could not validate user from token.', e));
+        errors.push(new Error('Could not validate user from token.'));
       };
     } else {
       errors.push(new Error("No token has been supplied to verify."));
@@ -163,7 +163,7 @@ class FirebaseDataSource extends DataSource {
    */
   async getPageOfUsers(args) {
     if (this.activeUser.errors && this.activeUser.errors.length > 0) {
-      throw new Error("User authentication error", this.activeUser.errors);
+      throw new Error("User authentication error");
     };
     if (this.activeUser && this.activeUser.customClaims.admin) {
       const { pageSize, pageToken } = args;
@@ -312,7 +312,7 @@ class FirebaseDataSource extends DataSource {
         };
 
       } catch (e) {
-        errors.push(new Error('Could not validate user from token.', e));
+        errors.push(new Error('Could not validate user from token.'));
       };
     } else {
       errors.push(new Error("No token has been supplied to verify."));
@@ -347,7 +347,7 @@ class FirebaseDataSource extends DataSource {
      */
   async updateUserInfo(user) {
     if (this.activeUser.errors && this.activeUser.errors.length > 0) {
-      throw new Error("User authentication error", this.activeUser.errors);
+      throw new Error("User authentication error");
     };
     if (this.activeUser && (this.activeUser.customClaims.admin || user.email === this.activeUser.email)) {
       var customClaims = { admin: false };
@@ -396,7 +396,7 @@ class FirebaseDataSource extends DataSource {
   async addDocument(args) {
     const { collection, data } = args;
     if (this.activeUser.errors && this.activeUser.errors.length > 0) {
-      throw new Error("User authentication error", this.activeUser.errors);
+      throw new Error("User authentication error");
     };
     if (this.activeUser) {
       const collectionReference = this.db.collection(collection);
@@ -442,7 +442,7 @@ class FirebaseDataSource extends DataSource {
   async updateDocument(args) {
     const { collection, data } = args;
     if (this.activeUser.errors && this.activeUser.errors.length > 0) {
-      throw new Error("User authentication error", this.activeUser.errors);
+      throw new Error("User authentication error");
     };
     if (this.activeUser) {
       if (data.id) {
@@ -480,7 +480,7 @@ class FirebaseDataSource extends DataSource {
   async addArrayElement(args) {
     const { collection, id, arrayField, arrayValue } = args;
     if (this.activeUser.errors && this.activeUser.errors.length > 0) {
-      throw new Error("User authentication error", this.activeUser.errors);
+      throw new Error("User authentication error");
     };
     if (this.activeUser) {
       if (id) {
@@ -519,7 +519,7 @@ class FirebaseDataSource extends DataSource {
   async removeArrayElement(args) {
     const { collection, id, arrayField, arrayValue } = args;
     if (this.activeUser.errors && this.activeUser.errors.length > 0) {
-      throw new Error("User authentication error", this.activeUser.errors);
+      throw new Error("User authentication error");
     };
     if (this.activeUser) {
       if (id) {
@@ -559,7 +559,7 @@ class FirebaseDataSource extends DataSource {
   async insertOrUpdateField(args) {
     const { collection, id, fieldName, key, value } = args;
     if (this.activeUser.errors && this.activeUser.errors.length > 0) {
-      throw new Error("User authentication error", this.activeUser.errors);
+      throw new Error("User authentication error");
     };
     if (this.activeUser) {
       try {
@@ -601,7 +601,7 @@ class FirebaseDataSource extends DataSource {
   async removeField(args) {
     const { collection, id, fieldName, key } = args;
     if (this.activeUser.errors && this.activeUser.errors.length > 0) {
-      throw new Error("User authentication error", this.activeUser.errors);
+      throw new Error("User authentication error");
     };
     if (this.activeUser) {
       try {
@@ -661,7 +661,7 @@ class FirebaseDataSource extends DataSource {
   async incrementFields(args) {
     const { collection, id, fieldsAndValues } = args;
     if (this.activeUser.errors && this.activeUser.errors.length > 0) {
-      throw new Error("User authentication error", this.activeUser.errors);
+      throw new Error("User authentication error");
     };
     let data = {};
     fieldsAndValues.forEach(kvp => {
@@ -706,7 +706,7 @@ class FirebaseDataSource extends DataSource {
   async deleteDocument(args) {
     const { collection, documentId } = args;
     if (this.activeUser.errors && this.activeUser.errors.length > 0) {
-      throw new Error("User authentication error", this.activeUser.errors);
+      throw new Error("User authentication error");
     };
     if (this.activeUser) {
       const documentReference = this.db.collection(collection).doc(documentId);
@@ -738,7 +738,7 @@ class FirebaseDataSource extends DataSource {
     const { collection, id } = args;
     var document = null;
     if (this.activeUser.errors && this.activeUser.errors.length > 0) {
-      throw new Error("User authentication error", this.activeUser.errors);
+      throw new Error("User authentication error");
     };
     if (this.activeUser) {
       try {
@@ -752,7 +752,7 @@ class FirebaseDataSource extends DataSource {
         }
         return document;
       } catch (err) {
-        throw new Error('Function getDocumentById failed.', err);
+        throw new Error('Function getDocumentById failed.');
       }
     } else {
       throw new Error('Not Authorised');
@@ -778,7 +778,7 @@ class FirebaseDataSource extends DataSource {
   async listDocuments(args) {
     const { collection } = args;
     if (this.activeUser.errors && this.activeUser.errors.length > 0) {
-      throw new Error("User authentication error", this.activeUser.errors);
+      throw new Error("User authentication error");
     };
     if (this.activeUser) {
       try {
@@ -790,7 +790,7 @@ class FirebaseDataSource extends DataSource {
         if (documents.length === 0) throw new Error("No data.");
         return documents;
       } catch (err) {
-        throw new Error('Function listDocuments failed.', err);
+        throw new Error('Function listDocuments failed.');
       }
     } else {
       throw new Error('Not Authorised');
@@ -817,7 +817,7 @@ class FirebaseDataSource extends DataSource {
     const { collection, filterArgs } = args;
     const filterOptions = { ...this.defaultFilterOptions, ...filterArgs };
     if (this.activeUser.errors && this.activeUser.errors.length > 0) {
-      throw new Error("User authentication error", this.activeUser.errors);
+      throw new Error("User authentication error");
     };
     if (this.activeUser) {
       try {
@@ -839,7 +839,7 @@ class FirebaseDataSource extends DataSource {
         if (documents.length === 0) throw new Error("No data.");
         return documents;
       } catch (err) {
-        throw new Error('Function getDocuments failed.', err);
+        throw new Error('Function getDocuments failed.');
       }
     } else {
       throw new Error('Not Authorised');
@@ -867,7 +867,7 @@ class FirebaseDataSource extends DataSource {
     const filterOptions = { ...this.defaultFilterOptions, ...filterArgs };
     const pageOptions = { ...this.defaultPageOptions, ...pageArgs };
     if (this.activeUser.errors && this.activeUser.errors.length > 0) {
-      throw new Error("User authentication error", this.activeUser.errors);
+      throw new Error("User authentication error");
     };
     if (this.activeUser) {
       try {
